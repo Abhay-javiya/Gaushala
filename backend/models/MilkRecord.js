@@ -10,7 +10,7 @@ const milkRecordSchema = new mongoose.Schema(
     },
 
     date: {
-      type: Date,
+      type: String,
       required: true
     },
 
@@ -34,7 +34,6 @@ const milkRecordSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Prevent duplicate morning/evening entries
 milkRecordSchema.index(
   { animalId: 1, date: 1, session: 1 },
   { unique: true }
