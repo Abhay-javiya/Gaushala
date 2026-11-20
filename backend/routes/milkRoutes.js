@@ -10,8 +10,13 @@ const {
   getMonthlySummary
 } = require("../controllers/milkController");
 
+const {
+  verifyToken,
+  requireAdmin
+} = require("../middleware/authMiddleware");
+
 // Add milk record
-router.post("/", addMilkRecord);
+router.post("/", verifyToken, requireAdmin, addMilkRecord);
 
 // Get all records (optional filters)
 router.get("/", getMilkRecords);

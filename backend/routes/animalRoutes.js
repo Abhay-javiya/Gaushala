@@ -9,19 +9,18 @@ const {
   deleteAnimal
 } = require("../controllers/animalController");
 
-// Add Animal
-router.post("/", addAnimal);
+const {
+  verifyToken,
+  requireAdmin
+} = require("../middleware/authMiddleware");
 
-// Get All Animals
+// Public read
 router.get("/", getAnimals);
-
-// Get Single Animal
 router.get("/:id", getAnimalById);
 
-// Update Animal
-router.put("/:id", updateAnimal);
-
-// Delete Animal
-router.delete("/:id", deleteAnimal);
+// Admin only
+router.post("/", verifyToken, requireAdmin, addAnimal);
+router.put("/:id", verifyToken, requireAdmin, updateAnimal);
+router.delete("/:id", verifyToken, requireAdmin, deleteAnimal);
 
 module.exports = router;

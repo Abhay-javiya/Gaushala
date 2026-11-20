@@ -7,6 +7,8 @@ const connectDB = require("./config/db");
 // Require routes ...
 const animalRoutes = require("./routes/animalRoutes");
 const milkRoutes = require("./routes/milkRoutes");
+const breedingRoutes = require("./routes/breedingRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
@@ -17,6 +19,8 @@ app.use(express.json());
 // Animal API ...
 app.use("/api/animals", animalRoutes);
 app.use("/api/milk", milkRoutes);
+app.use("/api/breeding", breedingRoutes);
+app.use("/api/auth", authRoutes);
 
 // Test route ...
 app.get("/", (req, res) => {
