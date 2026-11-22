@@ -76,4 +76,14 @@ const adminLogin = async (req, res) => {
   }
 };
 
-module.exports = { adminLogin };
+const getCurrentAdmin = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("name email role");
+    if (!user || user.role !== "admin") return res.status(403).json({ success: false, message: "Admin access only" });
+    return res.json({ success: true, admin: { id: user._id, name: user.name, email: user.email, role: user.role } });
+  } catch {
+    return res.status(401).json({ success: false, message: "Invalid or expired token" });
+  }
+};
+
+module.exports = { adminLogin, getCurrentAdmin };

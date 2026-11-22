@@ -6,6 +6,8 @@ const {
   getBreedingRecords,
   getBreedingByMother,
   updateBreedingStatus,
+  updateBreedingRecord,
+  deleteBreedingRecord,
   registerCalf
 } = require("../controllers/breedingController");
 
@@ -25,6 +27,8 @@ router.get("/mother/:motherId", getBreedingByMother);
 
 // Update breeding status
 router.put("/:id/status", verifyToken, requireAdmin, updateBreedingStatus);
+router.put("/:id", verifyToken, requireAdmin, updateBreedingRecord);
+router.delete("/:id", verifyToken, requireAdmin, deleteBreedingRecord);
 
 // Register newborn calf
 router.post("/:id/calf", verifyToken, requireAdmin, registerCalf);

@@ -1,6 +1,7 @@
 
 const MilkRecord = require("../models/MilkRecord");
 const Animal = require("../models/Animal");
+const mongoose = require("mongoose");
 
 // Validate YYYY-MM-DD date
 const isValidDate = (date) => {
@@ -88,6 +89,45 @@ const addMilkRecord = async (req, res) => {
       success: false,
       message: error.message
     });
+  }
+};
+
+const updateMilkRecord = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) return res.status(400).json({ success: false, message: "Invalid milk record ID" });
+    const { animalId, date, session, quantity, notes } = req.body;
+    if (!animalId || !date || !session || quantity === undefined) return res.status(400).json({ success: false, message: "Animal, date, session and quantity are required" });
+    if (!mongoose.isValidObjectId(animalId)) return res.status(400).json({ success: false, message: "Invalid animal ID" });
+    if (!isValidDate(date)) return res.status(400).json({ success: false, message: "Date must be in YYYY-MM-DD format" });
+    if (!["morning", "evening"].includes(session)) return res.status(400).json({ success: false, message: "Session must be morning or evening" });
+    const amount = Number(quantity);
+    if (!Number.isFinite(amount) || amount < 0) return res.status(400).json({ success: false, message: "Quantity must be a valid non-negative number" });
+    const [record, animal] = await Promise.all([MilkRecord.findById(id), Animal.findById(animalId)]);
+    if (!record) return res.status(404).json({ success: false, message: "Milk record not found" });
+    if (!animal) return res.status(404).json({ success: false, message: "Animal not found" });
+    if (animal.type !== "cow" || animal.gender !== "female" || animal.status !== "active") return res.status(400).json({ success: false, message: "Milk records can only be saved for active female cows" });
+    record.animalId = animalId;
+    record.date = date;
+    record.session = session;
+    record.quantity = amount;
+    record.notes = notes || "";
+    await record.save();
+    return res.status(200).json({ success: true, message: "Milk record updated successfully", data: record });
+  } catch (error) {
+    if (error.code === 11000) return res.status(409).json({ success: false, message: "Milk record already exists for this cow, date and session" });
+    return res.status(500).json({ success: false, message: "Milk record could not be updated" });
+  }
+};
+
+const deleteMilkRecord = async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ success: false, message: "Invalid milk record ID" });
+    const record = await MilkRecord.findByIdAndDelete(req.params.id);
+    if (!record) return res.status(404).json({ success: false, message: "Milk record not found" });
+    return res.status(200).json({ success: true, message: "Milk record deleted successfully" });
+  } catch {
+    return res.status(500).json({ success: false, message: "Milk record could not be deleted" });
   }
 };
 
@@ -331,6 +371,8 @@ const getMonthlySummary = async (req, res) => {
 
 module.exports = {
   addMilkRecord,
+  updateMilkRecord,
+  deleteMilkRecord,
   getMilkRecords,
   getMilkByDate,
   getAnimalMilkHistory,

@@ -3,6 +3,8 @@ const router = express.Router();
 
 const {
   addMilkRecord,
+  updateMilkRecord,
+  deleteMilkRecord,
   getMilkRecords,
   getMilkByDate,
   getAnimalMilkHistory,
@@ -17,6 +19,8 @@ const {
 
 // Add milk record
 router.post("/", verifyToken, requireAdmin, addMilkRecord);
+router.put("/:id", verifyToken, requireAdmin, updateMilkRecord);
+router.delete("/:id", verifyToken, requireAdmin, deleteMilkRecord);
 
 // Get all records (optional filters)
 router.get("/", getMilkRecords);

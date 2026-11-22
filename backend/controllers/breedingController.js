@@ -1,6 +1,7 @@
 
 const BreedingRecord = require("../models/BreedingRecord");
 const Animal = require("../models/Animal");
+const mongoose = require("mongoose");
 
 // Calculate expected delivery date
 const calculateDeliveryDate = (date) => {
@@ -225,6 +226,43 @@ const updateBreedingStatus = async (req, res) => {
   }
 };
 
+const updateBreedingRecord = async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ success: false, message: "Invalid breeding record ID" });
+    const record = await BreedingRecord.findById(req.params.id);
+    if (!record) return res.status(404).json({ success: false, message: "Breeding record not found" });
+    if (record.status === "delivered" || record.calfId) return res.status(409).json({ success: false, message: "Delivered records cannot be edited" });
+    const { motherId, fatherId, breedingDate, expectedDeliveryDate, status, notes } = req.body;
+    const nextMotherId = motherId ?? record.motherId;
+    const nextFatherId = fatherId === undefined ? record.fatherId : fatherId || null;
+    if (!mongoose.isValidObjectId(nextMotherId) || (nextFatherId && !mongoose.isValidObjectId(nextFatherId))) return res.status(400).json({ success: false, message: "Invalid parent animal ID" });
+    const [mother, father] = await Promise.all([Animal.findById(nextMotherId), nextFatherId ? Animal.findById(nextFatherId) : null]);
+    if (!mother || mother.type !== "cow" || mother.gender !== "female" || mother.status !== "active") return res.status(400).json({ success: false, message: "Mother must be an active female cow" });
+    if (nextFatherId && (!father || father.type !== "bull" || father.gender !== "male" || father.status !== "active")) return res.status(400).json({ success: false, message: "Father must be an active male bull" });
+    const nextBreedingDate = new Date(breedingDate ?? record.breedingDate);
+    if (Number.isNaN(nextBreedingDate.getTime())) return res.status(400).json({ success: false, message: "Invalid breeding date" });
+    const nextExpected = new Date(expectedDeliveryDate ?? record.expectedDeliveryDate ?? calculateDeliveryDate(nextBreedingDate));
+    if (Number.isNaN(nextExpected.getTime()) || nextExpected < nextBreedingDate) return res.status(400).json({ success: false, message: "Expected delivery date must be on or after breeding date" });
+    if (status && !["bred", "pregnant", "unsuccessful"].includes(status)) return res.status(400).json({ success: false, message: "Invalid breeding status" });
+    record.motherId = nextMotherId; record.fatherId = nextFatherId; record.breedingDate = nextBreedingDate; record.expectedDeliveryDate = nextExpected;
+    if (status) record.status = status;
+    if (notes !== undefined) record.notes = notes;
+    await record.save();
+    return res.json({ success: true, message: "Breeding record updated successfully", data: record });
+  } catch (error) { return res.status(500).json({ success: false, message: "Breeding record could not be updated" }); }
+};
+
+const deleteBreedingRecord = async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ success: false, message: "Invalid breeding record ID" });
+    const record = await BreedingRecord.findById(req.params.id);
+    if (!record) return res.status(404).json({ success: false, message: "Breeding record not found" });
+    if (record.calfId || record.status === "delivered") return res.status(409).json({ success: false, message: "Cannot delete a record with a registered calf" });
+    await record.deleteOne();
+    return res.json({ success: true, message: "Breeding record deleted successfully" });
+  } catch { return res.status(500).json({ success: false, message: "Breeding record could not be deleted" }); }
+};
+
 
 // 5. Register Newborn Calf
 const registerCalf = async (req, res) => {
@@ -334,5 +372,7 @@ module.exports = {
   getBreedingRecords,
   getBreedingByMother,
   updateBreedingStatus,
+  updateBreedingRecord,
+  deleteBreedingRecord,
   registerCalf
 };
